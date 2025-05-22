@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Nicola Clicker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            margin-top: 30px;
+        }
+        #click-img {
+            width: 200px;
+            cursor: pointer;
+            border-radius: 50%;
+            margin-top: 20px;
+        }
+        #counter {
+            font-size: 2em;
+            margin: 20px;
+        }
+        .upgrade {
+            margin: 10px auto;
+            padding: 10px;
+            width: 200px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .upgrade:disabled {
+            background-color: #eee;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nicola Clicker</h1>
+    <p id="counter">0 Clicks</p>
+    <img id="click-img" src="/mnt/data/a6b7ff12-98c3-485e-8d97-a52f725fb031.png" alt="Nicola" onclick="clickNicola()">
+
+    <div>
+        <button class="upgrade" onclick="buyUpgrade(1)" id="upgrade1">Upgrade 1 (+1 Click/sec) - Kosten: 50</button>
+        <button class="upgrade" onclick="buyUpgrade(2)" id="upgrade2">Upgrade 2 (+5 Clicks/sec) - Kosten: 250</button>
+    </div>
+
+    <script>
+        let clicks = 0;
+        let cps = 0; // clicks per second
+        const counter = document.getElementById('counter');
+
+        function updateCounter() {
+            counter.textContent = `${Math.floor(clicks)} Clicks`;
+        }
+
+        function clickNicola() {
+            clicks += 1;
+            updateCounter();
+        }
+
+        function buyUpgrade(level) {
+            if (level === 1 && clicks >= 50) {
+                cps += 1;
+                clicks -= 50;
+                document.getElementById('upgrade1').disabled = true;
+            } else if (level === 2 && clicks >= 250) {
+                cps += 5;
+                clicks -= 250;
+                document.getElementById('upgrade2').disabled = true;
+            }
+            updateCounter();
+        }
+
+        setInterval(() => {
+            clicks += cps;
+            updateCounter();
+        }, 1000);
+    </script>
+</body>
+</html>
