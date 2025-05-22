@@ -138,11 +138,36 @@
             { id: 'upgrade4', cost: 5000, value: 100, bought: false }
         ];
 
-        const achievements = [
-            { id: 'a1', text: '100 Gesamt-Clicks erreicht!', unlocked: false, condition: () => totalClicks >= 100 },
-            { id: 'a2', text: '1000 Gesamt-Clicks erreicht!', unlocked: false, condition: () => totalClicks >= 1000 },
-            { id: 'a3', text: '10 CPS erreicht!', unlocked: false, condition: () => cps >= 10 },
-            { id: 'a4', text: 'Upgrade 4 gekauft!', unlocked: false, condition: () => upgrades[3].bought }
+        // Neue Funktion: Dynamische Achievement-Erstellung für Klick-Meilensteine
+function createClickMilestones(max = 1000, step = 100) {
+    const milestones = [];
+    for (let i = step; i <= max; i += step) {
+        milestones.push({
+            id: `clicks-${i}`,
+            text: `${i} Gesamt-Clicks erreicht!`,
+            unlocked: false,
+            condition: () => totalClicks >= i
+        });
+    }
+    return milestones;
+}
+
+const upgrades = [
+    { id: 'upgrade1', cost: 50, value: 1, bought: false },
+    { id: 'upgrade2', cost: 250, value: 5, bought: false },
+    { id: 'upgrade3', cost: 1000, value: 20, bought: false },
+    { id: 'upgrade4', cost: 5000, value: 100, bought: false }
+];
+
+// Basis-Erfolge (zusätzlich zu Klick-Meilensteinen)
+let achievements = [
+    { id: 'cps-10', text: '10 CPS erreicht!', unlocked: false, condition: () => cps >= 10 },
+    { id: 'upgrade-4', text: 'Upgrade 4 gekauft!', unlocked: false, condition: () => upgrades[3].bought }
+];
+
+// Zusätzliche Klick-Meilensteine generieren
+achievements = achievements.concat(createClickMilestones());
+
         ];
 
         function updateUI() {
