@@ -72,229 +72,166 @@
             color: #0f0;
             font-size: 0.85em;
         }
-      #golden-egg {
-    position: absolute;
-    width: 70px;
-    height: 90px;
-    background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Golden_egg_01.jpg/600px-Golden_egg_01.jpg') no-repeat center/cover;
-    border-radius: 50% 50% 45% 45%;
-    box-shadow: 0 0 20px 5px gold;
-    display: none;
-    cursor: pointer;
-    animation: pulse 1s infinite alternate;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(1.1); opacity: 0.8; }
-}
-
+        #golden-egg {
+            position: absolute;
+            width: 70px;
+            height: 90px;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Golden_egg_01.jpg/600px-Golden_egg_01.jpg') no-repeat center/cover;
+            border-radius: 50% 50% 45% 45%;
+            box-shadow: 0 0 20px 5px gold;
+            display: none;
+            cursor: pointer;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.1); opacity: 0.8; }
+        }
+        #upgrade-collection {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .upgrade-icon {
+            width: 50px;
+            height: 50px;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #666;
+            border-radius: 6px;
+            opacity: 0.3;
+        }
+        .upgrade-icon.unlocked {
+            opacity: 1;
+            box-shadow: 0 0 10px #0f0;
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="click-area">
-            <p id="counter">0 Clicks</p>
-            <img id="click-img" src="https://i.imgur.com/9LCKJKc.png" alt="Nicola" onclick="clickNicola()">
-            <div id="golden-egg" onclick="clickGoldenEgg()"></div>
-        </div>
-        <div id="side-panel">
-            <div id="upgrades">
-                <button class="upgrade" onclick="buyUpgrade(1)" id="upgrade1">Upgrade 1 (+1 CPS) - 50</button>
-                <button class="upgrade" onclick="buyUpgrade(2)" id="upgrade2">Upgrade 2 (+5 CPS) - 250</button>
-                <button class="upgrade" onclick="buyUpgrade(3)" id="upgrade3">Nicola-Fabrik (+20 CPS) - 1000</button>
-                <button class="upgrade" onclick="buyUpgrade(4)" id="upgrade4">Nicola-Roboter (+100 CPS) - 5000</button>
-            </div>
-            <button class="prestige-button" onclick="prestige()">🔁 Prestige</button>
-            <div id="stats">
-                <h3>Statistiken</h3>
-                <p>Gesamt Clicks: <span id="total-clicks">0</span></p>
-                <p>Clicks/Sekunde: <span id="cps">0</span></p>
-                <p>Prestige Punkte: <span id="prestige-points">0</span></p>
-            </div>
-            <div id="achievements">
-                <h3>Erfolge</h3>
-                <div id="achievement-list"></div>
-            </div>
-        </div>
+<div id="game-container">
+    <div id="click-area">
+        <img id="click-img" src="https://i.imgur.com/9LCKJKc.png" alt="Nicola">
+        <div id="counter">0</div>
+        <div id="golden-egg"></div>
     </div>
+    <div id="side-panel">
+        <h2>Upgrades</h2>
+        <div id="upgrades-list"></div>
+        <h3>Sammlung</h3>
+        <div id="upgrade-collection"></div>
+        <h3>Prestige</h3>
+        <button class="prestige-button" id="prestige-button">Prestige zurücksetzen</button>
+    </div>
+</div>
+<script>
+    let clicks = 0;
+    let clickPower = 1;
+    let goldenEggTimer;
+    let prestigeLevel = 0;
 
-    <audio id="click-sound" src="https://www.soundjay.com/button/sounds/button-09.mp3" preload="auto"></audio>
-    <audio id="achievement-sound" src="https://www.soundjay.com/button/sounds/button-10.mp3" preload="auto"></audio>
-    <audio id="bg-music" src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" preload="auto" loop></audio>
+    const upgrades = [
+        { name: 'Fingerkraft', baseCost: 10, multiplier: 1, icon: 'https://cdn-icons-png.flaticon.com/512/69/69881.png' },
+        { name: 'Mausklicker', baseCost: 100, multiplier: 5, icon: 'https://cdn-icons-png.flaticon.com/512/32/32339.png' },
+        { name: 'Autoklicker', baseCost: 500, multiplier: 10, icon: 'https://cdn-icons-png.flaticon.com/512/709/709496.png' },
+    ];
+    const ownedUpgrades = {};
 
-    <script>
-        let clicks = 0;
-        let totalClicks = 0;
-        let cps = 0;
-        let prestigePoints = 0;
+    const counterEl = document.getElementById('counter');
+    const upgradesListEl = document.getElementById('upgrades-list');
+    const upgradeCollectionEl = document.getElementById('upgrade-collection');
+    const clickImg = document.getElementById('click-img');
+    const goldenEgg = document.getElementById('golden-egg');
+    const prestigeBtn = document.getElementById('prestige-button');
 
-        const counter = document.getElementById('counter');
-        const totalDisplay = document.getElementById('total-clicks');
-        const cpsDisplay = document.getElementById('cps');
-        const prestigeDisplay = document.getElementById('prestige-points');
-        const clickSound = document.getElementById('click-sound');
-        const achievementSound = document.getElementById('achievement-sound');
-        const bgMusic = document.getElementById('bg-music');
-        const goldenEgg = document.getElementById('golden-egg');
+    clickImg.addEventListener('click', () => {
+        clicks += clickPower;
+        updateCounter();
+    });
 
-        const upgrades = [
-            { id: 'upgrade1', cost: 50, value: 1, bought: false },
-            { id: 'upgrade2', cost: 250, value: 5, bought: false },
-            { id: 'upgrade3', cost: 1000, value: 20, bought: false },
-            { id: 'upgrade4', cost: 5000, value: 100, bought: false }
-        ];
+    goldenEgg.addEventListener('click', () => {
+        clicks += 1000 * (prestigeLevel + 1);
+        goldenEgg.style.display = 'none';
+        updateCounter();
+    });
 
-        const achievements = [
-            { id: 'a1', text: '100 Gesamt-Clicks erreicht!', unlocked: false, condition: () => totalClicks >= 100 },
-            { id: 'a2', text: '1000 Gesamt-Clicks erreicht!', unlocked: false, condition: () => totalClicks >= 1000 },
-            { id: 'a3', text: '10 CPS erreicht!', unlocked: false, condition: () => cps >= 10 },
-            { id: 'a4', text: 'Upgrade 4 gekauft!', unlocked: false, condition: () => upgrades[3].bought }
-        ];
-
-        function updateUI() {
-            counter.textContent = `${Math.floor(clicks)} Clicks`;
-            totalDisplay.textContent = `${Math.floor(totalClicks)}`;
-            cpsDisplay.textContent = `${cps}`;
-            prestigeDisplay.textContent = `${prestigePoints}`;
-        }
-
-        function clickNicola() {
-            clicks += 1 + prestigePoints;
-            totalClicks += 1 + prestigePoints;
-            clickSound.currentTime = 0;
-            clickSound.play();
-            updateUI();
-            checkAchievements();
-            saveGame();
-        }
-
-        function clickGoldenEgg() {
-            clicks += 100 * (1 + prestigePoints);
-            totalClicks += 100 * (1 + prestigePoints);
-            goldenEgg.style.display = 'none';
-            updateUI();
-            saveGame();
-        }
-
-        function buyUpgrade(level) {
-            const upgrade = upgrades[level - 1];
-            if (!upgrade.bought && clicks >= upgrade.cost) {
-                cps += upgrade.value;
-                clicks -= upgrade.cost;
-                upgrade.bought = true;
-                document.getElementById(upgrade.id).disabled = true;
-                updateUI();
-                checkAchievements();
-                saveGame();
-            }
-        }
-
-        function prestige() {
-            if (totalClicks >= 10000) {
-                prestigePoints += Math.floor(totalClicks / 10000);
-                clicks = 0;
-                totalClicks = 0;
-                cps = 0;
-                upgrades.forEach(upg => upg.bought = false);
-                achievements.forEach(a => a.unlocked = false);
-                document.getElementById('achievement-list').innerHTML = '';
-                upgrades.forEach(upg => document.getElementById(upg.id).disabled = false);
-                updateUI();
-                saveGame();
-            }
-        }
-
-       function spawnGoldenEgg() {
-    if (Math.random() < 0.005) { // 0.5% Chance pro Sekunde
-        goldenEgg.style.top = `${Math.random() * 80 + 10}%`;
-        goldenEgg.style.left = `${Math.random() * 80 + 10}%`;
+    function showGoldenEgg() {
+        const x = Math.random() * (window.innerWidth - 100);
+        const y = Math.random() * (window.innerHeight - 150);
+        goldenEgg.style.left = x + 'px';
+        goldenEgg.style.top = y + 'px';
         goldenEgg.style.display = 'block';
         setTimeout(() => goldenEgg.style.display = 'none', 7000);
     }
-}
 
-function clickGoldenEgg() {
-    const bonus = 777 * (1 + prestigePoints);
-    clicks += bonus;
-    totalClicks += bonus;
-    goldenEgg.style.display = 'none';
-    updateUI();
-    saveGame();
-}
+    function startGoldenEggTimer() {
+        goldenEggTimer = setInterval(() => {
+            if (Math.random() < 0.1) showGoldenEgg();
+        }, 10000);
+    }
 
-        setInterval(() => {
-            clicks += cps * (1 + prestigePoints);
-            totalClicks += cps * (1 + prestigePoints);
-            updateUI();
-            checkAchievements();
-            saveGame();
-            spawnGoldenEgg();
-        }, 1000);
+    function updateCounter() {
+        counterEl.textContent = clicks;
+    }
 
-        function checkAchievements() {
-            achievements.forEach(a => {
-                if (!a.unlocked && a.condition()) {
-                    a.unlocked = true;
-                    const div = document.createElement('div');
-                    div.className = 'achievement';
-                    div.textContent = a.text;
-                    document.getElementById('achievement-list').appendChild(div);
-                    achievementSound.currentTime = 0;
-                    achievementSound.play();
-                }
-            });
+    function buyUpgrade(index) {
+        const upgrade = upgrades[index];
+        const level = ownedUpgrades[index] || 0;
+        const cost = Math.floor(upgrade.baseCost * Math.pow(1.15, level));
+        if (clicks >= cost) {
+            clicks -= cost;
+            ownedUpgrades[index] = level + 1;
+            clickPower += upgrade.multiplier * (prestigeLevel + 1);
+            updateCounter();
+            renderUpgrades();
+            updateCollection();
         }
+    }
 
-        function saveGame() {
-            localStorage.setItem('nicola_clicks', clicks);
-            localStorage.setItem('nicola_totalClicks', totalClicks);
-            localStorage.setItem('nicola_cps', cps);
-            localStorage.setItem('nicola_upgrades', JSON.stringify(upgrades));
-            localStorage.setItem('nicola_achievements', JSON.stringify(achievements));
-            localStorage.setItem('nicola_prestige', prestigePoints);
-        }
+    function renderUpgrades() {
+        upgradesListEl.innerHTML = '';
+        upgrades.forEach((upgrade, index) => {
+            const level = ownedUpgrades[index] || 0;
+            const cost = Math.floor(upgrade.baseCost * Math.pow(1.15, level));
+            const btn = document.createElement('button');
+            btn.className = 'upgrade';
+            btn.textContent = `${upgrade.name} (+${upgrade.multiplier}) – ${cost} Klicks (Level ${level})`;
+            btn.disabled = clicks < cost;
+            btn.onclick = () => buyUpgrade(index);
+            upgradesListEl.appendChild(btn);
+        });
+    }
 
-        function loadGame() {
-            if (localStorage.getItem('nicola_clicks')) {
-                clicks = parseFloat(localStorage.getItem('nicola_clicks'));
-                totalClicks = parseFloat(localStorage.getItem('nicola_totalClicks'));
-                cps = parseFloat(localStorage.getItem('nicola_cps'));
-                prestigePoints = parseInt(localStorage.getItem('nicola_prestige')) || 0;
-                const savedUpgrades = JSON.parse(localStorage.getItem('nicola_upgrades'));
-                if (savedUpgrades) {
-                    for (let i = 0; i < upgrades.length; i++) {
-                        upgrades[i].bought = savedUpgrades[i].bought;
-                        if (upgrades[i].bought) {
-                            document.getElementById(upgrades[i].id).disabled = true;
-                        }
-                    }
-                }
-                const savedAchievements = JSON.parse(localStorage.getItem('nicola_achievements'));
-                if (savedAchievements) {
-                    for (let i = 0; i < achievements.length; i++) {
-                        achievements[i].unlocked = savedAchievements[i].unlocked;
-                        if (achievements[i].unlocked) {
-                            const div = document.createElement('div');
-                            div.className = 'achievement';
-                            div.textContent = achievements[i].text;
-                            document.getElementById('achievement-list').appendChild(div);
-                        }
-                    }
-                }
+    function updateCollection() {
+        upgradeCollectionEl.innerHTML = '';
+        upgrades.forEach((upgrade, index) => {
+            const icon = document.createElement('div');
+            icon.className = 'upgrade-icon';
+            icon.style.backgroundImage = `url(${upgrade.icon})`;
+            if (ownedUpgrades[index]) {
+                icon.classList.add('unlocked');
             }
-            updateUI();
-        }
+            upgradeCollectionEl.appendChild(icon);
+        });
+    }
 
-        window.onload = () => {
-            loadGame();
-            bgMusic.volume = 0.3;
-            bgMusic.play().catch(() => {
-                console.log("Autoplay nicht erlaubt, Musik startet bei erstem Klick.");
-            });
-            document.body.addEventListener('click', () => bgMusic.play(), { once: true });
-        };
-    </script>
+    function resetGameForPrestige() {
+        if (clicks < 10000) return alert('Mindestens 10.000 Klicks zum Prestigen nötig!');
+        prestigeLevel++;
+        clicks = 0;
+        clickPower = 1;
+        for (let i in ownedUpgrades) ownedUpgrades[i] = 0;
+        updateCounter();
+        renderUpgrades();
+        updateCollection();
+        alert(`Du hast prestigt! Prestige-Level: ${prestigeLevel}`);
+    }
+
+    prestigeBtn.addEventListener('click', resetGameForPrestige);
+
+    renderUpgrades();
+    updateCollection();
+    startGoldenEggTimer();
+</script>
 </body>
 </html>
