@@ -1,4 +1,3 @@
-// script.js
 let score = 0;
 let perSecond = 0;
 let upgrades = [
@@ -8,6 +7,9 @@ let upgrades = [
 ];
 let owned = {};
 let prestigePoints = 0;
+let achievements = [];
+let stats = { clicks: 0, goldenEggs: 0, totalEarned: 0 };
+let settings = { sound: true };
 
 const clicker = document.getElementById("clicker");
 const scoreEl = document.getElementById("score");
@@ -16,10 +18,28 @@ const upgradesEl = document.getElementById("upgrades");
 const goldenEgg = document.getElementById("golden-egg");
 const prestigeBtn = document.getElementById("prestigeBtn");
 
+const btnAchievements = document.getElementById("btn-achievements");
+const btnStats = document.getElementById("btn-stats");
+const btnSettings = document.getElementById("btn-settings");
+
+const panelAchievements = document.getElementById("panel-achievements");
+const panelStats = document.getElementById("panel-stats");
+const panelSettings = document.getElementById("panel-settings");
+
+const achievementsList = document.getElementById("achievements-list");
+const statClicks = document.getElementById("stat-clicks");
+const statGoldenEggs = document.getElementById("stat-goldenEggs");
+const statTotalEarned = document.getElementById("stat-totalEarned");
+const toggleSound = document.getElementById("toggle-sound");
+
 clicker.addEventListener("click", () => {
-  score += 1 + prestigePoints;
+  let gain = 1 + prestigePoints;
+  score += gain;
+  stats.clicks++;
+  stats.totalEarned += gain;
   updateUI();
-  playSound("click");
+  if (settings.sound) playSound("click");
+  checkAchievements();
 });
 
 function buyUpgrade(name) {
@@ -41,12 +61,13 @@ function updateProduction() {
 }
 
 function updateUI() {
-  scoreEl.textContent = `${score} Nicolas`;
-  perSecondEl.textContent = `${perSecond} pro Sekunde`;
+  scoreEl.textContent = `${Math.floor(score)} Nicolas`;
+  perSecondEl.textContent = `${Math.floor(perSecond)} pro Sekunde`;
 }
 
 function loop() {
   score += perSecond / 10;
+  stats.totalEarned += perSecond / 10;
   updateUI();
   if (Math.random() < 0.002) showGoldenEgg();
   save();
@@ -58,20 +79,25 @@ function showGoldenEgg() {
 }
 
 goldenEgg.addEventListener("click", () => {
-  score += 100 * (1 + prestigePoints);
-  playSound("golden_egg");
+  let bonus = 100 * (1 + prestigePoints);
+  score += bonus;
+  stats.goldenEggs++;
+  stats.totalEarned += bonus;
+  if (settings.sound) playSound("golden_egg");
   goldenEgg.classList.add("hidden");
+  checkAchievements();
 });
 
 prestigeBtn.addEventListener("click", () => {
   if (score >= 10000) {
-    prestigePoints += 1;
+    prestigePoints++;
     score = 0;
     owned = {};
-    upgrades.forEach(u => u.cost = u.cost / Math.pow(1.15, (owned[u.name] || 0)));
+    upgrades.forEach(u => (u.cost = u.cost / Math.pow(1.15, owned[u.name] || 0)));
     updateProduction();
     updateUI();
-    playSound("prestige");
+    if (settings.sound) playSound("prestige");
+    checkAchievements();
   }
 });
 
@@ -80,8 +106,23 @@ function playSound(name) {
   audio.play();
 }
 
+function checkAchievements() {
+  const list = [
+    { key: "click100", condition: stats.clicks >= 100, label: "100 Klicks!" },
+    { key: "egg5", condition: stats.goldenEggs >= 5, label: "5 goldene Eier!" },
+    { key: "prestige1", condition: prestigePoints >= 1, label: "Erstes Prestige!" },
+    { key: "rich", condition: stats.totalEarned >= 10000, label: "10.000 Nicolas verdient!" }
+  ];
+  list.forEach(a => {
+    if (a.condition && !achievements.includes(a.key)) {
+      achievements.push(a.key);
+      alert(`Achievement: ${a.label}`);
+    }
+  });
+}
+
 function save() {
-  const saveData = { score, owned, prestigePoints };
+  const saveData = { score, owned, prestigePoints, stats, achievements, settings };
   localStorage.setItem("save", JSON.stringify(saveData));
 }
 
@@ -91,6 +132,9 @@ function load() {
     score = data.score;
     owned = data.owned;
     prestigePoints = data.prestigePoints;
+    stats = data.stats || stats;
+    achievements = data.achievements || [];
+    settings = data.settings || settings;
     updateProduction();
     updateUI();
   }
@@ -98,15 +142,80 @@ function load() {
 
 function renderUpgrades() {
   upgradesEl.innerHTML = "";
-  upgrades.forEach(upg => {
+  upgrades.forEach(u => {
     const div = document.createElement("div");
-    div.className = "upgrade";
-    div.innerHTML = `<img src="${upg.img}" alt="${upg.name}" /> <div><strong>${upg.name}</strong><br>${upg.cost} Nicolas<br>+${upg.cps}/s</div>`;
-    div.onclick = () => buyUpgrade(upg.name);
+    div.classList.add("upgrade");
+    div.innerHTML = `
+      <img src="${u.img}" alt="${u.name}" />
+      <div>
+        <strong>${u.name}</strong><br/>
+        Kosten: ${Math.floor(u.cost)}<br/>
+        +${u.cps} pro Sekunde<br/>
+        Besitzt: ${owned[u.name] || 0}
+      </div>
+    `;
+    div.addEventListener("click", () => buyUpgrade(u.name));
     upgradesEl.appendChild(div);
   });
 }
 
+// Panel-Funktionen
+
+function showPanel(panel) {
+  [panelAchievements, panelStats, panelSettings].forEach(p => p.classList.add("hidden"));
+  panel.classList.remove("hidden");
+}
+
+btnAchievements.addEventListener("click", () => {
+  renderAchievements();
+  showPanel(panelAchievements);
+});
+
+btnStats.addEventListener("click", () => {
+  renderStats();
+  showPanel(panelStats);
+});
+
+btnSettings.addEventListener("click", () => {
+  toggleSound.checked = settings.sound;
+  showPanel(panelSettings);
+});
+
+toggleSound.addEventListener("change", () => {
+  settings.sound = toggleSound.checked;
+  save();
+});
+
+function renderAchievements() {
+  achievementsList.innerHTML = "";
+  if (achievements.length === 0) {
+    achievementsList.innerHTML = "<li>Keine Achievements bisher.</li>";
+  } else {
+    achievements.forEach(key => {
+      let label = key;
+      if (key === "click100") label = "100 Klicks!";
+      else if (key === "egg5") label = "5 goldene Eier!";
+      else if (key === "prestige1") label = "Erstes Prestige!";
+      else if (key === "rich") label = "10.000 Nicolas verdient!";
+      const li = document.createElement("li");
+      li.textContent = label;
+      achievementsList.appendChild(li);
+    });
+  }
+}
+
+function renderStats() {
+  statClicks.textContent = stats.clicks;
+  statGoldenEggs.textContent = stats.goldenEggs;
+  statTotalEarned.textContent = Math.floor(stats.totalEarned);
+}
+
+// Init
+
 load();
 renderUpgrades();
+updateProduction();
+updateUI();
+
 setInterval(loop, 100);
+
