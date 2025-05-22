@@ -1,237 +1,35 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Nicola Clicker</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Verdana', sans-serif;
-            background: url('https://orteil.dashnet.org/cookieclicker/img/bgBlue.jpg') repeat;
-            color: #fff;
-        }
-        #game-container {
-            display: flex;
-            height: 100vh;
-        }
-        #click-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 50, 0.5);
-            position: relative;
-        }
-        #click-img {
-            width: 250px;
-            cursor: pointer;
-            border-radius: 50%;
-            transition: transform 0.1s;
-            box-shadow: 0 0 20px #fff;
-        }
-        #click-img:active {
-            transform: scale(0.95);
-        }
-        #counter {
-            font-size: 2.5em;
-            margin: 20px;
-        }
-        #side-panel {
-            width: 300px;
-            background: rgba(20, 20, 60, 0.9);
-            padding: 20px;
-            box-shadow: -4px 0 10px rgba(0, 0, 0, 0.7);
-            overflow-y: auto;
-        }
-        .upgrade, .prestige-button, .event-button {
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #303060;
-            border: 2px solid #888;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 0.9em;
-            cursor: pointer;
-            width: 100%;
-        }
-        .upgrade:disabled, .prestige-button:disabled {
-            background-color: #444;
-            color: #aaa;
-            border-color: #666;
-            cursor: not-allowed;
-        }
-        #stats, #achievements {
-            margin-top: 20px;
-        }
-        #achievements h3, #stats p {
-            margin: 10px 0;
-        }
-        .achievement {
-            color: #0f0;
-            font-size: 0.85em;
-        }
-        #golden-egg {
-            position: absolute;
-            width: 70px;
-            height: 90px;
-            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Golden_egg_01.jpg/600px-Golden_egg_01.jpg') no-repeat center/cover;
-            border-radius: 50% 50% 45% 45%;
-            box-shadow: 0 0 20px 5px gold;
-            display: none;
-            cursor: pointer;
-            animation: pulse 1s infinite alternate;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.1); opacity: 0.8; }
-        }
-        #upgrade-collection {
-            margin-top: 30px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-        .upgrade-icon {
-            width: 50px;
-            height: 50px;
-            background-size: cover;
-            background-position: center;
-            border: 2px solid #666;
-            border-radius: 6px;
-            opacity: 0.3;
-        }
-        .upgrade-icon.unlocked {
-            opacity: 1;
-            box-shadow: 0 0 10px #0f0;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nicola Clicker – Rework</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div id="game-container">
-    <div id="click-area">
-        <img id="click-img" src="https://i.imgur.com/9LCKJKc.png" alt="Nicola">
-        <div id="counter">0</div>
-        <div id="golden-egg"></div>
-    </div>
-    <div id="side-panel">
-        <h2>Upgrades</h2>
-        <div id="upgrades-list"></div>
-        <h3>Sammlung</h3>
-        <div id="upgrade-collection"></div>
-        <h3>Prestige</h3>
-        <button class="prestige-button" id="prestige-button">Prestige zurücksetzen</button>
-    </div>
-</div>
-<script>
-    let clicks = 0;
-    let clickPower = 1;
-    let goldenEggTimer;
-    let prestigeLevel = 0;
+  <main>
+    <section id="clicker-area">
+      <button id="nicola-button" aria-label="Nicola klicken">
+        <img src="assets/nicola.png" alt="Nicola" />
+      </button>
+      <div id="score-display">
+        <h2>Nicolas: <span id="score">0</span></h2>
+        <p>Produziert pro Sekunde: <span id="nps">0</span></p>
+      </div>
+      <div id="golden-egg" title="Goldenens Ei!"></div>
+    </section>
 
-    const upgrades = [
-        { name: 'Fingerkraft', baseCost: 10, multiplier: 1, icon: 'https://cdn-icons-png.flaticon.com/512/69/69881.png' },
-        { name: 'Mausklicker', baseCost: 100, multiplier: 5, icon: 'https://cdn-icons-png.flaticon.com/512/32/32339.png' },
-        { name: 'Autoklicker', baseCost: 500, multiplier: 10, icon: 'https://cdn-icons-png.flaticon.com/512/709/709496.png' },
-    ];
-    const ownedUpgrades = {};
+    <aside id="upgrades-panel">
+      <h3>Upgrades</h3>
+      <div id="upgrades-container">
+        <!-- Upgrades werden hier dynamisch eingefügt -->
+      </div>
+      <button id="prestige-button" title="Prestige aktivieren">Prestige</button>
+    </aside>
+  </main>
 
-    const counterEl = document.getElementById('counter');
-    const upgradesListEl = document.getElementById('upgrades-list');
-    const upgradeCollectionEl = document.getElementById('upgrade-collection');
-    const clickImg = document.getElementById('click-img');
-    const goldenEgg = document.getElementById('golden-egg');
-    const prestigeBtn = document.getElementById('prestige-button');
+  <div id="tooltip" role="tooltip" aria-hidden="true"></div>
 
-    clickImg.addEventListener('click', () => {
-        clicks += clickPower;
-        updateCounter();
-    });
-
-    goldenEgg.addEventListener('click', () => {
-        clicks += 1000 * (prestigeLevel + 1);
-        goldenEgg.style.display = 'none';
-        updateCounter();
-    });
-
-    function showGoldenEgg() {
-        const x = Math.random() * (window.innerWidth - 100);
-        const y = Math.random() * (window.innerHeight - 150);
-        goldenEgg.style.left = x + 'px';
-        goldenEgg.style.top = y + 'px';
-        goldenEgg.style.display = 'block';
-        setTimeout(() => goldenEgg.style.display = 'none', 7000);
-    }
-
-    function startGoldenEggTimer() {
-        goldenEggTimer = setInterval(() => {
-            if (Math.random() < 0.1) showGoldenEgg();
-        }, 10000);
-    }
-
-    function updateCounter() {
-        counterEl.textContent = clicks;
-    }
-
-    function buyUpgrade(index) {
-        const upgrade = upgrades[index];
-        const level = ownedUpgrades[index] || 0;
-        const cost = Math.floor(upgrade.baseCost * Math.pow(1.15, level));
-        if (clicks >= cost) {
-            clicks -= cost;
-            ownedUpgrades[index] = level + 1;
-            clickPower += upgrade.multiplier * (prestigeLevel + 1);
-            updateCounter();
-            renderUpgrades();
-            updateCollection();
-        }
-    }
-
-    function renderUpgrades() {
-        upgradesListEl.innerHTML = '';
-        upgrades.forEach((upgrade, index) => {
-            const level = ownedUpgrades[index] || 0;
-            const cost = Math.floor(upgrade.baseCost * Math.pow(1.15, level));
-            const btn = document.createElement('button');
-            btn.className = 'upgrade';
-            btn.textContent = `${upgrade.name} (+${upgrade.multiplier}) – ${cost} Klicks (Level ${level})`;
-            btn.disabled = clicks < cost;
-            btn.onclick = () => buyUpgrade(index);
-            upgradesListEl.appendChild(btn);
-        });
-    }
-
-    function updateCollection() {
-        upgradeCollectionEl.innerHTML = '';
-        upgrades.forEach((upgrade, index) => {
-            const icon = document.createElement('div');
-            icon.className = 'upgrade-icon';
-            icon.style.backgroundImage = `url(${upgrade.icon})`;
-            if (ownedUpgrades[index]) {
-                icon.classList.add('unlocked');
-            }
-            upgradeCollectionEl.appendChild(icon);
-        });
-    }
-
-    function resetGameForPrestige() {
-        if (clicks < 10000) return alert('Mindestens 10.000 Klicks zum Prestigen nötig!');
-        prestigeLevel++;
-        clicks = 0;
-        clickPower = 1;
-        for (let i in ownedUpgrades) ownedUpgrades[i] = 0;
-        updateCounter();
-        renderUpgrades();
-        updateCollection();
-        alert(`Du hast prestigt! Prestige-Level: ${prestigeLevel}`);
-    }
-
-    prestigeBtn.addEventListener('click', resetGameForPrestige);
-
-    renderUpgrades();
-    updateCollection();
-    startGoldenEggTimer();
-</script>
+  <script src="script.js"></script>
 </body>
 </html>
