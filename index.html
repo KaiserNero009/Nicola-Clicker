@@ -7,79 +7,209 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            background-color: #f0f0f0;
+            background: linear-gradient(to bottom, #f0f8ff, #e0e0e0);
             margin: 0;
             padding: 0;
         }
         h1 {
             margin-top: 30px;
+            font-size: 3em;
         }
         #click-img {
             width: 200px;
             cursor: pointer;
             border-radius: 50%;
             margin-top: 20px;
+            transition: transform 0.1s;
+        }
+        #click-img:active {
+            transform: scale(0.95);
         }
         #counter {
-            font-size: 2em;
+            font-size: 2.5em;
             margin: 20px;
         }
         .upgrade {
             margin: 10px auto;
             padding: 10px;
-            width: 200px;
+            width: 250px;
             background-color: #fff;
-            border: 1px solid #ccc;
+            border: 2px solid #444;
             border-radius: 10px;
             cursor: pointer;
+            font-size: 1em;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
         }
         .upgrade:disabled {
-            background-color: #eee;
+            background-color: #ccc;
             cursor: not-allowed;
+        }
+        #upgrades, #stats, #achievements {
+            margin: 30px auto;
+            width: 300px;
+            text-align: left;
+        }
+        #achievements {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #aaa;
+        }
+        .achievement {
+            margin: 5px 0;
+            color: green;
         }
     </style>
 </head>
 <body>
     <h1>Nicola Clicker</h1>
     <p id="counter">0 Clicks</p>
-    <img id="click-img" src="/mnt/data/a6b7ff12-98c3-485e-8d97-a52f725fb031.png" alt="Nicola" onclick="clickNicola()">
+    <img id="click-img" src="https://i.imgur.com/9LCKJKc.png" alt="Nicola" onclick="clickNicola()">
 
-    <div>
+    <div id="upgrades">
         <button class="upgrade" onclick="buyUpgrade(1)" id="upgrade1">Upgrade 1 (+1 Click/sec) - Kosten: 50</button>
         <button class="upgrade" onclick="buyUpgrade(2)" id="upgrade2">Upgrade 2 (+5 Clicks/sec) - Kosten: 250</button>
+        <button class="upgrade" onclick="buyUpgrade(3)" id="upgrade3">Nicola-Fabrik (+20 Clicks/sec) - Kosten: 1000</button>
+        <button class="upgrade" onclick="buyUpgrade(4)" id="upgrade4">Nicola-Roboter (+100 Clicks/sec) - Kosten: 5000</button>
     </div>
+
+    <div id="stats">
+        <p><strong>Gesamt Clicks:</strong> <span id="total-clicks">0</span></p>
+        <p><strong>Clicks pro Sekunde:</strong> <span id="cps">0</span></p>
+    </div>
+
+    <div id="achievements">
+        <h3>Erfolge</h3>
+        <div id="achievement-list"></div>
+    </div>
+
+    <audio id="click-sound" src="https://www.soundjay.com/button/sounds/button-09.mp3" preload="auto"></audio>
+    <audio id="achievement-sound" src="https://www.soundjay.com/button/sounds/button-10.mp3" preload="auto"></audio>
+    <audio id="bg-music" src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" preload="auto" loop></audio>
 
     <script>
         let clicks = 0;
-        let cps = 0; // clicks per second
-        const counter = document.getElementById('counter');
+        let totalClicks = 0;
+        let cps = 0;
 
-        function updateCounter() {
+        const counter = document.getElementById('counter');
+        const totalDisplay = document.getElementById('total-clicks');
+        const cpsDisplay = document.getElementById('cps');
+        const clickSound = document.getElementById('click-sound');
+        const achievementSound = document.getElementById('achievement-sound');
+        const bgMusic = document.getElementById('bg-music');
+
+        const upgrades = [
+            { id: 'upgrade1', cost: 50, value: 1, bought: false },
+            { id: 'upgrade2', cost: 250, value: 5, bought: false },
+            { id: 'upgrade3', cost: 1000, value: 20, bought: false },
+            { id: 'upgrade4', cost: 5000, value: 100, bought: false }
+        ];
+
+        const achievements = [
+            { id: 'a1', text: '100 Gesamt-Clicks erreicht!', unlocked: false, condition: () => totalClicks >= 100 },
+            { id: 'a2', text: '1000 Gesamt-Clicks erreicht!', unlocked: false, condition: () => totalClicks >= 1000 },
+            { id: 'a3', text: '10 CPS erreicht!', unlocked: false, condition: () => cps >= 10 },
+            { id: 'a4', text: 'Upgrade 4 gekauft!', unlocked: false, condition: () => upgrades[3].bought }
+        ];
+
+        function updateUI() {
             counter.textContent = `${Math.floor(clicks)} Clicks`;
+            totalDisplay.textContent = `${Math.floor(totalClicks)}`;
+            cpsDisplay.textContent = `${cps}`;
         }
 
         function clickNicola() {
             clicks += 1;
-            updateCounter();
+            totalClicks += 1;
+            clickSound.currentTime = 0;
+            clickSound.play();
+            updateUI();
+            checkAchievements();
+            saveGame();
         }
 
         function buyUpgrade(level) {
-            if (level === 1 && clicks >= 50) {
-                cps += 1;
-                clicks -= 50;
-                document.getElementById('upgrade1').disabled = true;
-            } else if (level === 2 && clicks >= 250) {
-                cps += 5;
-                clicks -= 250;
-                document.getElementById('upgrade2').disabled = true;
+            const upgrade = upgrades[level - 1];
+            if (!upgrade.bought && clicks >= upgrade.cost) {
+                cps += upgrade.value;
+                clicks -= upgrade.cost;
+                upgrade.bought = true;
+                document.getElementById(upgrade.id).disabled = true;
+                updateUI();
+                checkAchievements();
+                saveGame();
             }
-            updateCounter();
         }
 
         setInterval(() => {
             clicks += cps;
-            updateCounter();
+            totalClicks += cps;
+            updateUI();
+            checkAchievements();
+            saveGame();
         }, 1000);
+
+        function checkAchievements() {
+            achievements.forEach(a => {
+                if (!a.unlocked && a.condition()) {
+                    a.unlocked = true;
+                    const div = document.createElement('div');
+                    div.className = 'achievement';
+                    div.textContent = a.text;
+                    document.getElementById('achievement-list').appendChild(div);
+                    achievementSound.currentTime = 0;
+                    achievementSound.play();
+                }
+            });
+        }
+
+        function saveGame() {
+            localStorage.setItem('nicola_clicks', clicks);
+            localStorage.setItem('nicola_totalClicks', totalClicks);
+            localStorage.setItem('nicola_cps', cps);
+            localStorage.setItem('nicola_upgrades', JSON.stringify(upgrades));
+            localStorage.setItem('nicola_achievements', JSON.stringify(achievements));
+        }
+
+        function loadGame() {
+            if (localStorage.getItem('nicola_clicks')) {
+                clicks = parseFloat(localStorage.getItem('nicola_clicks'));
+                totalClicks = parseFloat(localStorage.getItem('nicola_totalClicks'));
+                cps = parseFloat(localStorage.getItem('nicola_cps'));
+                const savedUpgrades = JSON.parse(localStorage.getItem('nicola_upgrades'));
+                if (savedUpgrades) {
+                    for (let i = 0; i < upgrades.length; i++) {
+                        upgrades[i].bought = savedUpgrades[i].bought;
+                        if (upgrades[i].bought) {
+                            document.getElementById(upgrades[i].id).disabled = true;
+                        }
+                    }
+                }
+                const savedAchievements = JSON.parse(localStorage.getItem('nicola_achievements'));
+                if (savedAchievements) {
+                    for (let i = 0; i < achievements.length; i++) {
+                        achievements[i].unlocked = savedAchievements[i].unlocked;
+                        if (achievements[i].unlocked) {
+                            const div = document.createElement('div');
+                            div.className = 'achievement';
+                            div.textContent = achievements[i].text;
+                            document.getElementById('achievement-list').appendChild(div);
+                        }
+                    }
+                }
+            }
+            updateUI();
+        }
+
+        window.onload = () => {
+            loadGame();
+            bgMusic.volume = 0.3;
+            bgMusic.play().catch(() => {
+                console.log("Autoplay nicht erlaubt, Musik startet bei erstem Klick.");
+            });
+            document.body.addEventListener('click', () => bgMusic.play(), { once: true });
+        };
     </script>
 </body>
 </html>
