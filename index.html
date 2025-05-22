@@ -5,22 +5,31 @@
     <title>Nicola Clicker</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background: linear-gradient(to bottom, #f0f8ff, #e0e0e0);
             margin: 0;
             padding: 0;
+            font-family: 'Verdana', sans-serif;
+            background: url('https://orteil.dashnet.org/cookieclicker/img/bgBlue.jpg') repeat;
+            color: #fff;
         }
-        h1 {
-            margin-top: 30px;
-            font-size: 3em;
+        #game-container {
+            display: flex;
+            height: 100vh;
+        }
+        #click-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 50, 0.5);
+            position: relative;
         }
         #click-img {
-            width: 200px;
+            width: 250px;
             cursor: pointer;
             border-radius: 50%;
-            margin-top: 20px;
             transition: transform 0.1s;
+            box-shadow: 0 0 20px #fff;
         }
         #click-img:active {
             transform: scale(0.95);
@@ -29,58 +38,78 @@
             font-size: 2.5em;
             margin: 20px;
         }
-        .upgrade {
-            margin: 10px auto;
-            padding: 10px;
-            width: 250px;
-            background-color: #fff;
-            border: 2px solid #444;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1em;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+        #side-panel {
+            width: 300px;
+            background: rgba(20, 20, 60, 0.9);
+            padding: 20px;
+            box-shadow: -4px 0 10px rgba(0, 0, 0, 0.7);
+            overflow-y: auto;
         }
-        .upgrade:disabled {
-            background-color: #ccc;
+        .upgrade, .prestige-button, .event-button {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #303060;
+            border: 2px solid #888;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.9em;
+            cursor: pointer;
+            width: 100%;
+        }
+        .upgrade:disabled, .prestige-button:disabled {
+            background-color: #444;
+            color: #aaa;
+            border-color: #666;
             cursor: not-allowed;
         }
-        #upgrades, #stats, #achievements {
-            margin: 30px auto;
-            width: 300px;
-            text-align: left;
+        #stats, #achievements {
+            margin-top: 20px;
         }
-        #achievements {
-            background-color: #fff;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #aaa;
+        #achievements h3, #stats p {
+            margin: 10px 0;
         }
         .achievement {
-            margin: 5px 0;
-            color: green;
+            color: #0f0;
+            font-size: 0.85em;
+        }
+        #golden-egg {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: gold;
+            border-radius: 50%;
+            box-shadow: 0 0 10px yellow;
+            display: none;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <h1>Nicola Clicker</h1>
-    <p id="counter">0 Clicks</p>
-    <img id="click-img" src="https://i.imgur.com/9LCKJKc.png" alt="Nicola" onclick="clickNicola()">
-
-    <div id="upgrades">
-        <button class="upgrade" onclick="buyUpgrade(1)" id="upgrade1">Upgrade 1 (+1 Click/sec) - Kosten: 50</button>
-        <button class="upgrade" onclick="buyUpgrade(2)" id="upgrade2">Upgrade 2 (+5 Clicks/sec) - Kosten: 250</button>
-        <button class="upgrade" onclick="buyUpgrade(3)" id="upgrade3">Nicola-Fabrik (+20 Clicks/sec) - Kosten: 1000</button>
-        <button class="upgrade" onclick="buyUpgrade(4)" id="upgrade4">Nicola-Roboter (+100 Clicks/sec) - Kosten: 5000</button>
-    </div>
-
-    <div id="stats">
-        <p><strong>Gesamt Clicks:</strong> <span id="total-clicks">0</span></p>
-        <p><strong>Clicks pro Sekunde:</strong> <span id="cps">0</span></p>
-    </div>
-
-    <div id="achievements">
-        <h3>Erfolge</h3>
-        <div id="achievement-list"></div>
+    <div id="game-container">
+        <div id="click-area">
+            <p id="counter">0 Clicks</p>
+            <img id="click-img" src="https://i.imgur.com/9LCKJKc.png" alt="Nicola" onclick="clickNicola()">
+            <div id="golden-egg" onclick="clickGoldenEgg()"></div>
+        </div>
+        <div id="side-panel">
+            <div id="upgrades">
+                <button class="upgrade" onclick="buyUpgrade(1)" id="upgrade1">Upgrade 1 (+1 CPS) - 50</button>
+                <button class="upgrade" onclick="buyUpgrade(2)" id="upgrade2">Upgrade 2 (+5 CPS) - 250</button>
+                <button class="upgrade" onclick="buyUpgrade(3)" id="upgrade3">Nicola-Fabrik (+20 CPS) - 1000</button>
+                <button class="upgrade" onclick="buyUpgrade(4)" id="upgrade4">Nicola-Roboter (+100 CPS) - 5000</button>
+            </div>
+            <button class="prestige-button" onclick="prestige()">🔁 Prestige</button>
+            <div id="stats">
+                <h3>Statistiken</h3>
+                <p>Gesamt Clicks: <span id="total-clicks">0</span></p>
+                <p>Clicks/Sekunde: <span id="cps">0</span></p>
+                <p>Prestige Punkte: <span id="prestige-points">0</span></p>
+            </div>
+            <div id="achievements">
+                <h3>Erfolge</h3>
+                <div id="achievement-list"></div>
+            </div>
+        </div>
     </div>
 
     <audio id="click-sound" src="https://www.soundjay.com/button/sounds/button-09.mp3" preload="auto"></audio>
@@ -91,13 +120,16 @@
         let clicks = 0;
         let totalClicks = 0;
         let cps = 0;
+        let prestigePoints = 0;
 
         const counter = document.getElementById('counter');
         const totalDisplay = document.getElementById('total-clicks');
         const cpsDisplay = document.getElementById('cps');
+        const prestigeDisplay = document.getElementById('prestige-points');
         const clickSound = document.getElementById('click-sound');
         const achievementSound = document.getElementById('achievement-sound');
         const bgMusic = document.getElementById('bg-music');
+        const goldenEgg = document.getElementById('golden-egg');
 
         const upgrades = [
             { id: 'upgrade1', cost: 50, value: 1, bought: false },
@@ -117,15 +149,24 @@
             counter.textContent = `${Math.floor(clicks)} Clicks`;
             totalDisplay.textContent = `${Math.floor(totalClicks)}`;
             cpsDisplay.textContent = `${cps}`;
+            prestigeDisplay.textContent = `${prestigePoints}`;
         }
 
         function clickNicola() {
-            clicks += 1;
-            totalClicks += 1;
+            clicks += 1 + prestigePoints;
+            totalClicks += 1 + prestigePoints;
             clickSound.currentTime = 0;
             clickSound.play();
             updateUI();
             checkAchievements();
+            saveGame();
+        }
+
+        function clickGoldenEgg() {
+            clicks += 100 * (1 + prestigePoints);
+            totalClicks += 100 * (1 + prestigePoints);
+            goldenEgg.style.display = 'none';
+            updateUI();
             saveGame();
         }
 
@@ -142,12 +183,37 @@
             }
         }
 
+        function prestige() {
+            if (totalClicks >= 10000) {
+                prestigePoints += Math.floor(totalClicks / 10000);
+                clicks = 0;
+                totalClicks = 0;
+                cps = 0;
+                upgrades.forEach(upg => upg.bought = false);
+                achievements.forEach(a => a.unlocked = false);
+                document.getElementById('achievement-list').innerHTML = '';
+                upgrades.forEach(upg => document.getElementById(upg.id).disabled = false);
+                updateUI();
+                saveGame();
+            }
+        }
+
+        function spawnGoldenEgg() {
+            if (Math.random() < 0.1) {
+                goldenEgg.style.top = `${Math.random() * 80 + 10}%`;
+                goldenEgg.style.left = `${Math.random() * 80 + 10}%`;
+                goldenEgg.style.display = 'block';
+                setTimeout(() => goldenEgg.style.display = 'none', 5000);
+            }
+        }
+
         setInterval(() => {
-            clicks += cps;
-            totalClicks += cps;
+            clicks += cps * (1 + prestigePoints);
+            totalClicks += cps * (1 + prestigePoints);
             updateUI();
             checkAchievements();
             saveGame();
+            spawnGoldenEgg();
         }, 1000);
 
         function checkAchievements() {
@@ -170,6 +236,7 @@
             localStorage.setItem('nicola_cps', cps);
             localStorage.setItem('nicola_upgrades', JSON.stringify(upgrades));
             localStorage.setItem('nicola_achievements', JSON.stringify(achievements));
+            localStorage.setItem('nicola_prestige', prestigePoints);
         }
 
         function loadGame() {
@@ -177,6 +244,7 @@
                 clicks = parseFloat(localStorage.getItem('nicola_clicks'));
                 totalClicks = parseFloat(localStorage.getItem('nicola_totalClicks'));
                 cps = parseFloat(localStorage.getItem('nicola_cps'));
+                prestigePoints = parseInt(localStorage.getItem('nicola_prestige')) || 0;
                 const savedUpgrades = JSON.parse(localStorage.getItem('nicola_upgrades'));
                 if (savedUpgrades) {
                     for (let i = 0; i < upgrades.length; i++) {
