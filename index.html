@@ -72,15 +72,23 @@
             color: #0f0;
             font-size: 0.85em;
         }
-        #golden-egg {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            background: gold;
-            border-radius: 50%;
-            box-shadow: 0 0 10px yellow;
-            display: none;
-            cursor: pointer;
+      #golden-egg {
+    position: absolute;
+    width: 70px;
+    height: 90px;
+    background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Golden_egg_01.jpg/600px-Golden_egg_01.jpg') no-repeat center/cover;
+    border-radius: 50% 50% 45% 45%;
+    box-shadow: 0 0 20px 5px gold;
+    display: none;
+    cursor: pointer;
+    animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.1); opacity: 0.8; }
+}
+
         }
     </style>
 </head>
@@ -198,14 +206,23 @@
             }
         }
 
-        function spawnGoldenEgg() {
-            if (Math.random() < 0.1) {
-                goldenEgg.style.top = `${Math.random() * 80 + 10}%`;
-                goldenEgg.style.left = `${Math.random() * 80 + 10}%`;
-                goldenEgg.style.display = 'block';
-                setTimeout(() => goldenEgg.style.display = 'none', 5000);
-            }
-        }
+       function spawnGoldenEgg() {
+    if (Math.random() < 0.005) { // 0.5% Chance pro Sekunde
+        goldenEgg.style.top = `${Math.random() * 80 + 10}%`;
+        goldenEgg.style.left = `${Math.random() * 80 + 10}%`;
+        goldenEgg.style.display = 'block';
+        setTimeout(() => goldenEgg.style.display = 'none', 7000);
+    }
+}
+
+function clickGoldenEgg() {
+    const bonus = 777 * (1 + prestigePoints);
+    clicks += bonus;
+    totalClicks += bonus;
+    goldenEgg.style.display = 'none';
+    updateUI();
+    saveGame();
+}
 
         setInterval(() => {
             clicks += cps * (1 + prestigePoints);
